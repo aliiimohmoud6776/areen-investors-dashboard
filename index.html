@@ -108,6 +108,15 @@ h3{margin:0 0 2px;font-size:16px;font-weight:700}.sub{color:var(--mut);font-size
 .det .tot{border-top:1px solid var(--line);margin-top:2px;padding:10px 0 6px;display:flex;justify-content:space-between;font-weight:800}
 .det .th{display:grid;grid-template-columns:1fr auto auto;gap:14px;font-size:11px;color:#bdb9aa;padding:6px 0 0}
 .det .th span:nth-child(3){min-width:84px;text-align:left}
+.price{grid-column:span 12}
+.eqn{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:6px 0 18px}
+.eqn i{font-style:normal;font-size:26px;color:var(--mut)}
+.bx{background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:18px;padding:12px 18px;min-width:150px}
+.bx span{display:block;font-size:12px;color:var(--mut)}.bx b{font-size:30px;font-weight:300}.bx small{color:var(--mut);margin-inline-start:6px;font-size:12px}
+.bx.hi{background:linear-gradient(145deg,rgba(79,227,176,.20),rgba(79,227,176,.06));border-color:rgba(79,227,176,.4)}.bx.hi b{color:var(--mint);font-weight:800}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:26px}.h2{font-size:11px;letter-spacing:.12em;color:var(--mut);font-weight:700;margin-bottom:6px}
+.pr{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}.pr:first-of-type{border-top:0}.pr small{color:var(--mut)}
+@media (max-width:700px){.cols{grid-template-columns:1fr}.eqn i{display:none}.bx{flex:1 1 100%}}
 .cap{grid-column:span 12;padding:18px 20px}
 .capbar{display:flex;height:14px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.08);margin:12px 0 10px}
 .capbar i{display:block;height:100%;transition:width 1s ease}
@@ -165,7 +174,7 @@ footer{text-align:center;color:var(--mut);font-size:12px;margin-top:22px}
 const SUPABASE_URL="https://lmgmagaiosadqnulybwp.supabase.co";
 const SUPABASE_KEY="sb_publishable_Sr-YQEenmzFnyptM5Pe8LQ_O1_FTgpU";
 let DATA={
-  settings:{platform_name:"منصة عرين",developer_name:"أحمد حسن حامد",share_price:1500,code_value:150000,usd_rate:50,trial_teachers:37,pro_teachers:0,students:470,ad_campaign_price:13000,ad_campaign_status:"running",ad_auto_stop_on_update:true,last_update_at:new Date().toISOString()},
+  settings:{platform_name:"منصة عرين",developer_name:"أحمد حسن حامد",share_price:1500,code_value:150000,usd_rate:50,trial_teachers:37,pro_teachers:0,students:470,shares_outstanding:100,value_per_student:0,value_per_trial_teacher:0,value_per_pro_teacher:0,ad_campaign_price:13000,ad_campaign_status:"running",ad_auto_stop_on_update:true,last_update_at:new Date().toISOString()},
   expenses:[{name:"اشتراكات الخدمات",note:"SMS · Vercel · Supabase · Domain",amount:600,currency:"USD"}],
   ai:[{model_name:"Claude",accounts:2,price_per_account:2100}],
   investors:[{name:"رامي أحمد جادالله",role:"مستثمر",paid_amount:34800,is_remainder:false,sort_order:1},{name:"أحمد حسن حامد",role:"مبرمج المنصة",paid_amount:null,is_remainder:true,sort_order:2}]
@@ -212,13 +221,15 @@ async function load(){
   render();
 }
 function calc(){
-  const s=DATA.settings,price=+s.share_price,rate=LIVE_RATE||+s.usd_rate;
+  const s=DATA.settings,rate=LIVE_RATE||+s.usd_rate;
   const services=DATA.expenses.reduce((t,x)=>t+(x.currency==="USD"?x.amount*rate:+x.amount),0);
   const ai=DATA.ai.reduce((t,x)=>t+x.accounts*x.price_per_account,0);
-  const ad=+s.ad_campaign_price,code=+s.code_value,total=code+services+ai+ad,totalShares=total/price;
+  const ad=+s.ad_campaign_price,code=+s.code_value,cost=code+services+ai+ad;
+  const traction=(+s.students||0)*(+s.value_per_student||0)+(+s.trial_teachers||0)*(+s.value_per_trial_teacher||0)+(+s.pro_teachers||0)*(+s.value_per_pro_teacher||0);
+  const total=cost+traction,totalShares=+s.shares_outstanding||100,price=total/totalShares;
   const cash=DATA.investors.filter(x=>!x.is_remainder).reduce((t,x)=>t+(+x.paid_amount||0),0);
   const inv=DATA.investors.map(x=>{const shares=x.is_remainder?Math.max(totalShares-cash/price,0):(+x.paid_amount||0)/price;return{...x,shares,pct:shares/totalShares*100,paid:x.is_remainder?Math.max(total-cash,0):+x.paid_amount}});
-  return{services,ai,ad,code,total,totalShares,inv,price,rate,cash};
+  return{services,ai,ad,code,cost,traction,total,totalShares,inv,price,rate,cash};
 }
 
 function dial(c){
@@ -242,7 +253,7 @@ function render(){
   const rooms=["a","b","c"];
   const svcNames=DATA.expenses.flatMap(e=>String(e.note||e.name).split("·").map(t=>t.trim()).filter(Boolean));
   const aiTxt=DATA.ai.map(a=>`${a.model_name} · ${a.accounts} حساب × ${f(a.price_per_account)}`).join(" + ");
-  const items=[["سعر المنصة (كود المشروع)",c.code,null],["الخدمات المشترك بها",c.services,svcNames],["اشتراكات "+DATA.ai.map(a=>a.model_name).join(" + "),c.ai,aiTxt],["الحملة الإعلانية",c.ad,on?"شغالة":"متوقفة"]];
+  const items=[["سعر المنصة (كود المشروع)",c.code,null],["الخدمات والاشتراكات التقنية",c.services,svcNames],["اشتراكات "+DATA.ai.map(a=>a.model_name).join(" + "),c.ai,aiTxt],["الحملة الإعلانية",c.ad,on?"شغالة":"متوقفة"]].concat(c.traction>0?[["قيمة المستخدمين (معلمين وطلاب)",c.traction,null]]:[]);
   const invCards=c.inv.map((x,k)=>{
     const head=`<div class="who"><div class="av">${esc((x.name||"؟").trim().charAt(0))}</div><div><div class="n">${esc(x.name)}</div><div class="r">${esc(x.role)}</div></div></div>`;
     if(x.is_remainder){
@@ -262,10 +273,9 @@ function render(){
     <div class="paid-l">المبلغ المدفوع نقدًا</div>
     <div class="paid">${N(x.paid,0,"paid"+k)}<small>ج.م</small></div>
     <div class="trio"><div><span>عدد الأسهم</span><b class="num">${f(x.shares,2)}</b></div><div><span>نسبة الملكية</span><b class="num">${f(x.pct,2)}%</b></div><div><span>قيمة الحصة</span><b class="num">${f(x.shares*c.price)}</b></div></div>
-    <div class="det"><div class="h">تفاصيل ما تقوم عليه المنصة</div>
-      <div class="th"><span>البند</span><span>القيمة (ج.م)</span><span>حصتك</span></div>
-      ${items.map(it=>`<div class="r"><span class="a">${esc(it[0])}</span><span class="b num">${f(it[1])}</span><span class="m num">${f(it[1]*x.pct/100)}</span>${Array.isArray(it[2])?`<div class="svc">${it[2].map(n=>`<span>${esc(n)}</span>`).join("")}<span>$${f(DATA.expenses.reduce((t,e)=>t+(e.currency==="USD"?+e.amount:0),0))} × ${f(c.rate,2)}</span></div>`:it[2]?`<div class="svc"><span>${esc(it[2])}</span></div>`:""}</div>`).join("")}
-      <div class="tot"><span>سعر المنصة الإجمالي</span><span class="num">${f(c.total)} ج.م</span></div></div>
+    <div class="det"><div class="h">معلومات المنصة وأسعارها</div>
+      ${items.map(it=>`<div class="r"><span class="a">${esc(it[0])}</span><span class="b num">${f(it[1])}</span>${Array.isArray(it[2])?`<div class="svc">${it[2].map(n=>`<span>${esc(n)}</span>`).join("")}<span>$${f(DATA.expenses.reduce((t,e)=>t+(e.currency==="USD"?+e.amount:0),0))} × ${f(c.rate,2)}</span></div>`:it[2]?`<div class="svc"><span>${esc(it[2])}</span></div>`:""}</div>`).join("")}
+      <div class="tot"><span>قيمة المنصة الإجمالية</span><span class="num">${f(c.total)} ج.م</span></div></div>
     </div></article>`;}).join("");
   const parts=[["كود المشروع",c.code,"تكلفة تطوير الكود",ic("code")],["اشتراكات الخدمات",c.services,DATA.expenses.flatMap(e=>String(e.note||e.name).split("·").map(t=>t.trim())).join(" · "),ic("server")],["اشتراكات نماذج AI",c.ai,DATA.ai.map(a=>`${a.model_name} × ${a.accounts}`).join(" · "),ic("bot")],["الحملة الإعلانية",c.ad,on?"شغالة الآن":"متوقفة",ic("mega")]];
   const cashPct=c.cash/c.total*100;
@@ -282,11 +292,11 @@ function render(){
         <span class="chip">${ic("users")} ${f(s.students)} طالب</span>
         <span class="chip ${on?"ok":"bad"}"><span class="dot ${on?"":"off"}"></span>${on?"الحملة شغالة":"الحملة متوقفة"}</span>
       </div>
-      <p class="lead">قيمة المنصة <b>${f(c.total)} ج.م</b> موزعة على <b>${f(c.totalShares,2)} سهم</b> بسعر <b>${f(c.price)} ج.م</b> للسهم. دفع المستثمرون نقدًا <b>${f(c.cash)} ج.م</b> (${f(cashPct,1)}% من القيمة) وبقية الأسهم تعود للمبرمج من غير أي دفع نقدي.</p>
+      <p class="lead">قيمة المنصة <b>${f(c.total)} ج.م</b> موزعة على <b>${f(c.totalShares,0)} سهم</b> بسعر <b>${f(c.price)} ج.م</b> للسهم (القيمة ÷ الأسهم). دفع المستثمرون نقدًا <b>${f(c.cash)} ج.م</b> (${f(cashPct,1)}% من القيمة) وبقية الأسهم تعود للمبرمج من غير أي دفع نقدي.</p>
     </div></section>
 
   <section class="card dial" style="--i:1"><div class="label">توزيع الملكية</div>
-    <div class="wrap">${dial(c)}<div class="mid"><div class="v">${N(c.totalShares,1,"ts")}</div><div class="u">إجمالي الأسهم</div></div></div>
+    <div class="wrap">${dial(c)}<div class="mid"><div class="v">${N(c.totalShares,0,"ts")}</div><div class="u">إجمالي الأسهم</div></div></div>
     <div class="legend">${c.inv.map((x,k)=>`<div><span><i style="background:${COL[k%5]}"></i>${esc(x.name)}</span><b class="num">${f(x.pct,2)}%</b></div>`).join("")}</div></section>
 
   <article class="card scene" style="--i:2;--c:#e0b87c"><div class="tile">${ic("grad")}</div><div><div class="t">معلمين تجريبي</div><div class="v">${N(+s.trial_teachers,0,"tr")}</div></div></article>
@@ -298,6 +308,14 @@ function render(){
   <article class="card metric" style="--i:6"><div class="k">${ic("wallet")} المدفوع نقدًا من المستثمرين</div><div class="v">${N(c.cash,0,"cs")} <small>ج.م</small></div><div class="bar"><i style="width:${cashPct}%"></i></div><div class="f">${f(cashPct,1)}% من قيمة المنصة</div></article>
   <article class="card metric" style="--i:7"><div class="k">${ic("box")} أسهم المستثمرين</div><div class="v">${N(c.cash/c.price,2,"is")} <small>سهم</small></div><div class="bar"><i style="width:${cashPct}%"></i></div><div class="f">المدفوع ÷ سعر السهم</div></article>
   <article class="card metric" style="--i:7"><div class="k">${ic("coin")} سعر الدولار</div><div class="v">${N(c.rate,2,"rt")} <small>ج.م</small></div><div class="bar"><i style="width:100%"></i></div><div class="f">${LIVE_RATE?"سعر لحظي تلقائي":"السعر المخزن"}</div></article>
+
+  <section class="card price" style="--i:8"><div class="label">تسعير السهم</div>
+    <h3>كيف يتحدد سعر السهم؟</h3><div class="sub">الطريقة العالمية: القيمة السوقية للشركة ÷ عدد الأسهم المصدرة. تتحدث تلقائيًا مع بيانات المنصة وسعر الدولار.</div>
+    <div class="eqn"><div class="bx"><span>قيمة المنصة</span><b>${N(c.total,0,"pv")}</b><small>ج.م</small></div><i>÷</i><div class="bx"><span>الأسهم المصدرة</span><b>${N(c.totalShares,0,"pn")}</b><small>سهم</small></div><i>=</i><div class="bx hi"><span>سعر السهم</span><b>${N(c.price,0,"pp")}</b><small>ج.م</small></div></div>
+    <div class="cols">
+      <div><div class="h2">مكونات قيمة المنصة</div>${[["كود المشروع",c.code],["الخدمات والاشتراكات التقنية",c.services],["اشتراكات نماذج AI",c.ai],["الحملة الإعلانية",c.ad]].concat(c.traction>0?[["قيمة المستخدمين",c.traction]]:[]).map(r=>`<div class="pr"><span>${r[0]}</span><b class="num">${f(r[1])} ج.م</b></div>`).join("")}</div>
+      <div><div class="h2">تكلفة شراء حصة من المنصة</div>${[1,5,10,25].map(p=>`<div class="pr"><span>${p}% <small>· ${f(c.totalShares*p/100,c.totalShares*p/100%1?2:0)} سهم</small></span><b class="num">${f(c.total*p/100)} ج.م</b></div>`).join("")}</div>
+    </div></section>
 
   <div class="sec" id="investors"><h3>المستثمرون والمدفوع</h3><span>الأسهم تُحسب تلقائيًا من المبلغ المدفوع</span></div>
   ${invCards}
