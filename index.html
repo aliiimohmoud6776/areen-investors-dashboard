@@ -69,6 +69,12 @@ h3{margin:0 0 2px;font-size:16px;font-weight:700}.sub{color:var(--mut);font-size
 .tile{flex:none;width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:rgba(255,255,255,.07);color:var(--c,var(--mint))}
 .scene .t{font-size:13px;color:var(--mut)}.scene .v{font-size:28px;font-weight:800;line-height:1.1}
 .scene .v small{font-size:12px;color:var(--mut);font-weight:500;margin-inline-start:4px}
+.teach{grid-column:span 6;padding:22px;gap:18px;background:radial-gradient(360px 200px at 90% 0%,rgba(79,227,176,.24),transparent 65%),linear-gradient(135deg,rgba(79,227,176,.11),rgba(255,255,255,.04));border-color:rgba(79,227,176,.5);box-shadow:0 0 0 1px rgba(79,227,176,.12),0 18px 50px -18px rgba(79,227,176,.5)}
+.teach .tile.big{width:72px;height:72px;border-radius:24px;background:linear-gradient(145deg,var(--mint),var(--mint2));color:#05261b;box-shadow:0 10px 30px rgba(79,227,176,.35)}.teach .tile.big .ic{width:34px;height:34px}
+.teach .tb{flex:1;min-width:0}.teach .t{font-size:13.5px;font-weight:700;color:var(--mint)}
+.teach .v{font-size:clamp(46px,6vw,66px);font-weight:800;line-height:1.05;background:linear-gradient(90deg,#fff,var(--mint));-webkit-background-clip:text;background-clip:text;color:transparent}.teach .v small{font-size:16px;margin-inline-start:8px;-webkit-text-fill-color:var(--mut)}
+.split{display:flex;height:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.08);margin:12px 0 9px}.split i{display:block;height:100%;transition:width 1s ease}
+.tl{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:#d8d4c6}.tl .d{display:inline-block;width:9px;height:9px;border-radius:3px;margin-inline-end:6px}
 .metric{grid-column:span 2;padding:18px}
 .metric .k{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:6px}
 .metric .v{font-size:30px;font-weight:300;margin:6px 0 10px}
@@ -138,8 +144,8 @@ footer{text-align:center;color:var(--mut);font-size:12px;margin-top:22px}
 @media (max-width:1000px){.shell{grid-template-columns:1fr;padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
  .rail{position:fixed;inset:auto 12px calc(12px + env(safe-area-inset-bottom,0px)) 12px;top:auto;height:auto;flex-direction:row;justify-content:space-around;padding:8px;z-index:20;border-radius:22px;background:rgba(24,27,20,.82)}
  .rail .logo,.rail .sp{display:none}
- .hero,.dial,.comp,.ai,.ad,.dev,.room{grid-column:span 12}.scene,.metric{grid-column:span 6}}
-@media (max-width:560px){.scene,.metric{grid-column:span 12}.trio{grid-template-columns:1fr 1fr 1fr}.trio b{font-size:15px}}
+ .hero,.dial,.comp,.ai,.ad,.dev,.room{grid-column:span 12}.scene,.metric{grid-column:span 6}.teach{grid-column:span 12}}
+@media (max-width:560px){.scene,.metric,.teach{grid-column:span 12}.trio{grid-template-columns:1fr 1fr 1fr}.trio b{font-size:15px}}
 #app.static .card{animation:none;opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.card{animation:none;opacity:1;transform:none}.dot{animation:none}}
 </style>
@@ -175,7 +181,7 @@ footer{text-align:center;color:var(--mut);font-size:12px;margin-top:22px}
 const SUPABASE_URL="https://lmgmagaiosadqnulybwp.supabase.co";
 const SUPABASE_KEY="sb_publishable_Sr-YQEenmzFnyptM5Pe8LQ_O1_FTgpU";
 let DATA={
-  settings:{platform_name:"منصة عرين",developer_name:"أحمد حسن حامد",share_price:1500,code_value:150000,usd_rate:50,trial_teachers:38,pro_teachers:0,students:470,shares_outstanding:100,value_per_student:0,value_per_trial_teacher:0,value_per_pro_teacher:0,profits:0,ad_campaign_price:13000,ad_campaign_status:"running",ad_auto_stop_on_update:true,last_update_at:new Date().toISOString()},
+  settings:{platform_name:"منصة عرين",developer_name:"أحمد حسن حامد",share_price:1500,code_value:150000,usd_rate:50,trial_teachers:38,pro_teachers:0,students:492,shares_outstanding:100,value_per_student:0,value_per_trial_teacher:0,value_per_pro_teacher:0,profits:0,ad_campaign_price:13000,ad_campaign_status:"running",ad_auto_stop_on_update:true,last_update_at:new Date().toISOString()},
   expenses:[{name:"اشتراكات الخدمات",note:"SMS · Vercel · Supabase · Domain",amount:600,currency:"USD"},{name:"خدمات شهرية",note:"اشتراكات شهرية",amount:5450,currency:"EGP"}],
   ai:[{model_name:"Claude",accounts:2,price_per_account:2100}],
   payments:[{investor_id:1,amount:34800,label:"الدفعة الأولى",paid_at:null},{investor_id:1,amount:5500,label:"استثمار إضافي",paid_at:"2026-11-26"}],
@@ -286,6 +292,7 @@ function render(){
     </div></article>`;}).join("");
   const parts=[["كود المشروع",c.code,"تكلفة تطوير الكود",ic("code")],["اشتراكات الخدمات",c.services,svcList().join(" · "),ic("server")],["اشتراكات نماذج AI",c.ai,DATA.ai.map(a=>`${a.model_name} × ${a.accounts}`).join(" · "),ic("bot")],["الحملة الإعلانية",c.ad,on?"شغالة الآن":"متوقفة",ic("mega")]];
   const cashPct=c.cash/c.total*100;
+  const tt=(+s.trial_teachers||0)+(+s.pro_teachers||0),tp=tt?(+s.trial_teachers||0)/tt*100:100;
   const first=!window._r;window._r=1;
   $("app").className="grid"+(first?"":" static");
   $("app").innerHTML=`
@@ -306,8 +313,11 @@ function render(){
     <div class="wrap">${dial(c)}<div class="mid"><div class="v">${N(c.totalShares,0,"ts")}</div><div class="u">إجمالي الأسهم</div></div></div>
     <div class="legend">${c.inv.map((x,k)=>`<div><span><i style="background:${COL[k%5]}"></i>${esc(x.name)}</span><b class="num">${f(x.pct,2)}%</b></div>`).join("")}</div></section>
 
-  <article class="card scene" style="--i:2;--c:#e0b87c"><div class="tile">${ic("grad")}</div><div><div class="t">معلمين تجريبي</div><div class="v">${N(+s.trial_teachers,0,"tr")}</div></div></article>
-  <article class="card scene" style="--i:3;--c:#4fe3b0"><div class="tile">${ic("star")}</div><div><div class="t">معلمين Pro</div><div class="v">${N(+s.pro_teachers,0,"pr")}</div></div></article>
+  <article class="card scene teach" style="--i:2"><div class="tile big">${ic("grad")}</div>
+    <div class="tb"><div class="t">إجمالي المعلمين على المنصة</div>
+      <div class="v">${N((+s.trial_teachers||0)+(+s.pro_teachers||0),0,"tt")}<small>معلم</small></div>
+      <div class="split"><i style="width:${tp}%;background:var(--warm)"></i><i style="width:${100-tp}%;background:var(--mint)"></i></div>
+      <div class="tl"><span><i class="d" style="background:var(--warm)"></i>تجريبي <b>${N(+s.trial_teachers||0,0,"trk")}</b></span><span><i class="d" style="background:var(--mint)"></i>Pro <b>${N(+s.pro_teachers||0,0,"prk")}</b></span></div></div></article>
   <article class="card scene" style="--i:4;--c:#7cc8f0"><div class="tile">${ic("users")}</div><div><div class="t">عدد الطلاب</div><div class="v">${N(+s.students,0,"st")}</div></div></article>
   <article class="card scene" style="--i:5;--c:#c79bf2"><div class="tile">${ic("coin")}</div><div><div class="t">سعر السهم</div><div class="v">${N(c.price,0,"sp")}<small>ج.م</small></div></div></article>
 
