@@ -181,10 +181,10 @@ footer{text-align:center;color:var(--mut);font-size:12px;margin-top:22px}
 const SUPABASE_URL="https://lmgmagaiosadqnulybwp.supabase.co";
 const SUPABASE_KEY="sb_publishable_Sr-YQEenmzFnyptM5Pe8LQ_O1_FTgpU";
 let DATA={
-  settings:{platform_name:"منصة عرين",developer_name:"أحمد حسن حامد",share_price:1500,code_value:150000,usd_rate:50,trial_teachers:38,pro_teachers:0,students:492,shares_outstanding:100,value_per_student:0,value_per_trial_teacher:0,value_per_pro_teacher:0,profits:0,ad_campaign_price:13000,ad_campaign_status:"running",ad_auto_stop_on_update:true,last_update_at:new Date().toISOString()},
+  settings:{platform_name:"منصة عرين",developer_name:"أحمد حسن حامد",share_price:1500,code_value:150000,usd_rate:50,trial_teachers:40,pro_teachers:0,students:520,shares_outstanding:100,value_per_student:0,value_per_trial_teacher:0,value_per_pro_teacher:0,profits:0,ad_campaign_price:13000,ad_campaign_status:"paused",ad_auto_stop_on_update:true,last_update_at:new Date().toISOString()},
   expenses:[{name:"اشتراكات الخدمات",note:"SMS · Vercel · Supabase · Domain",amount:600,currency:"USD"},{name:"خدمات شهرية",note:"اشتراكات شهرية",amount:5450,currency:"EGP"}],
   ai:[{model_name:"Claude",accounts:2,price_per_account:2100}],
-  payments:[{investor_id:1,amount:34800,label:"الدفعة الأولى",paid_at:null},{investor_id:1,amount:5500,label:"استثمار إضافي",paid_at:"2026-11-26"}],
+  payments:[{investor_id:1,amount:34800,label:"الدفعة الأولى",paid_at:null},{investor_id:1,amount:5500,label:"استثمار إضافي",paid_at:"2026-11-26"},{investor_id:2,amount:22000,label:"سداد جزء من الخدمات (600$)",paid_at:null}],
   investors:[{id:1,name:"رامي أحمد جادالله",role:"مستثمر",paid_amount:34800,is_remainder:false,sort_order:1},{id:2,name:"أحمد حسن حامد",role:"مبرمج المنصة",paid_amount:null,is_remainder:true,sort_order:2}]
 };
 let LIVE_RATE=null;
@@ -239,7 +239,7 @@ function calc(){
   const paidOf=x=>{const ps=paysOf(x);return ps.length?ps.reduce((t,p)=>t+(+p.amount||0),0):(+x.paid_amount||0)};
   const cash=DATA.investors.filter(x=>!x.is_remainder).reduce((t,x)=>t+paidOf(x),0);
   const monthly=DATA.expenses.filter(e=>e.currency==="EGP").reduce((t,e)=>t+(+e.amount||0),0);
-  const inv=DATA.investors.map(x=>{const shares=x.is_remainder?Math.max(totalShares-cash/price,0):paidOf(x)/price;return{...x,shares,pct:shares/totalShares*100,pays:paysOf(x),paid:x.is_remainder?Math.max(total-cash,0):paidOf(x)}});
+  const inv=DATA.investors.map(x=>{const shares=x.is_remainder?Math.max(totalShares-cash/price,0):paidOf(x)/price;return{...x,shares,pct:shares/totalShares*100,pays:paysOf(x),paid:paidOf(x)}});
   return{monthly,services,ai,ad,code,cost,traction,total,totalShares,inv,price,rate,cash};
 }
 
@@ -270,11 +270,12 @@ function render(){
     const head=`<div class="who"><div class="av">${esc((x.name||"؟").trim().charAt(0))}</div><div><div class="n">${esc(x.name)}</div><div class="r">${esc(x.role)}</div></div></div>`;
     if(x.is_remainder){
       return `<article class="card room ${rooms[k%3]}" style="--c:${COL[k%5]};--i:${8+k}"><div class="bg"></div><div class="body">${head}
-      <span class="seal">${ic("code")} لم يدفع أي مبلغ نقدي · 0 ج.م</span>
+      <span class="seal">${ic("code")} ${x.paid>0?`سدّد ${f(x.paid)} ج.م من الخدمات · أسهمه لا تتغير`:"لم يدفع أي مبلغ نقدي · 0 ج.م"}</span>
       <div class="paid-l">الأسهم المتبقية تعود إليه</div>
       <div class="eq">${N(x.shares,2,"eq"+k)}<small>سهم</small></div>
-      <p class="why">بقية أسهم المنصة بعد أسهم المستثمرين تعود لمبرمجها مقابل بناء الكود وتطويره بالكامل، من غير أي دفع نقدي.</p>
-      <div class="trio"><div><span>نسبة الملكية</span><b class="num">${f(x.pct,2)}%</b></div><div><span>قيمة الحصة</span><b class="num">${f(x.shares*c.price)}</b></div><div><span>المدفوع نقدًا</span><b class="num">0</b></div></div>
+      <p class="why">بقية أسهم المنصة بعد أسهم المستثمرين تعود لمبرمجها مقابل بناء الكود وتطويره بالكامل، وما سدّده من الخدمات (600$) لا يغيّر عدد أسهمه، لأن أي أسهم متبقية بعد المستثمرين ترجع له.</p>
+      <div class="trio"><div><span>نسبة الملكية</span><b class="num">${f(x.pct,2)}%</b></div><div><span>قيمة الحصة</span><b class="num">${f(x.shares*c.price)}</b></div><div><span>المدفوع نقدًا</span><b class="num">${f(x.paid)}</b></div></div>
+      ${x.pays.length?`<div class="pays">${x.pays.map(p=>`<div><span>${esc(p.label||"دفعة")}</span><b class="num">${f(p.amount)} ج.م</b></div>`).join("")}</div>`:""}
       <div class="det"><div class="h">كيف تتحسب حصته؟</div>
         <div class="r"><span class="a">إجمالي قيمة المنصة</span><span class="b num">${f(c.total)}</span><span class="m"></span></div>
         <div class="r"><span class="a">ناقص: ما دفعه المستثمرون نقدًا</span><span class="b num">− ${f(c.cash)}</span><span class="m"></span></div>
@@ -306,7 +307,7 @@ function render(){
         <span class="chip">${ic("users")} ${f(s.students)} طالب</span>
         <span class="chip ${on?"ok":"bad"}"><span class="dot ${on?"":"off"}"></span>${on?"الحملة شغالة":"الحملة متوقفة"}</span>
       </div>
-      <p class="lead">قيمة المنصة <b>${f(c.total)} ج.م</b> موزعة على <b>${f(c.totalShares,0)} سهم</b> بسعر <b>${f(c.price)} ج.م</b> للسهم (القيمة ÷ الأسهم). دفع المستثمرون نقدًا <b>${f(c.cash)} ج.م</b> (${f(cashPct,1)}% من القيمة) وبقية الأسهم تعود للمبرمج من غير أي دفع نقدي.</p>
+      <p class="lead">قيمة المنصة <b>${f(c.total)} ج.م</b> موزعة على <b>${f(c.totalShares,0)} سهم</b> بسعر <b>${f(c.price)} ج.م</b> للسهم (القيمة ÷ الأسهم). دفع المستثمرون نقدًا <b>${f(c.cash)} ج.م</b> (${f(cashPct,1)}% من القيمة) وبقية الأسهم تعود للمبرمج.</p>
     </div></section>
 
   <section class="card dial" style="--i:1"><div class="label">توزيع الملكية</div>
@@ -341,7 +342,7 @@ function render(){
 
   <section class="card cap" id="capital" style="--i:10"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><h3>من يملك ماذا</h3><b class="num" style="color:var(--mint)">${f(c.total)} ج.م</b></div>
     <div class="capbar">${c.inv.map((x,k)=>`<i style="width:${x.pct}%;background:${COL[k%5]}"></i>`).join("")}</div>
-    <div class="caplg">${c.inv.map((x,k)=>`<span><i style="background:${COL[k%5]}"></i>${esc(x.name)}: ${x.is_remainder?`<b>بدون دفع نقدي</b> · ${f(x.shares,2)} سهم`:`<b class="num">${f(x.paid)} ج.م</b> نقدًا · ${f(x.shares,2)} سهم`} (${f(x.pct,1)}%)</span>`).join("")}</div></section>
+    <div class="caplg">${c.inv.map((x,k)=>`<span><i style="background:${COL[k%5]}"></i>${esc(x.name)}: ${x.paid<=0?`<b>بدون دفع نقدي</b> · ${f(x.shares,2)} سهم`:`<b class="num">${f(x.paid)} ج.م</b> نقدًا · ${f(x.shares,2)} سهم`} (${f(x.pct,1)}%)</span>`).join("")}</div></section>
 
   <div class="sec" id="components"><h3>مكونات القيمة</h3><span>الاشتراكات والنماذج</span></div>
   <section class="card comp" style="--i:11"><h3>تفصيل قيمة المنصة</h3><div class="sub">كل بند ونسبته من الإجمالي</div>
